@@ -1,5 +1,6 @@
 import os
 
+#to not display shell outpu from caffe
 os.environ['GLOG_minloglevel'] = '2'
 import caffe
 import numpy as np
