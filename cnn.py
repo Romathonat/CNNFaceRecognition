@@ -7,7 +7,7 @@ from PIL import Image
 caffe.set_mode_cpu()
 
 #we use our CNN. the first argument is the architecture of our CNN, the second one are the weights
-net = caffe.Net('/datas/deploy.prototxt', '/datas/facenet_iter_200000.caffemodel', caffe.TEST)
+net = caffe.Net('/datas/facenet_train_test.prototxt', '/datas/facenet_iter_200000.caffemodel', caffe.TEST)
 
 #we create a transformer that resize the shape of our datas
 transformer = caffe.io.Transformer({'data': net.blobs['data'].data.shape})
