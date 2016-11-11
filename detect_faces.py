@@ -25,8 +25,9 @@ def slide_window(image, number_resize):
     #take care if the image is smaller than 36*36
     for j in range((image.shape[1] - heigh_image_network) / step):
         for i in range((image.shape[0] - width_image_network) / step):
-            if(is_face(image[i*step:i*step+width_image_network,j*step:j*step+heigh_image_network,:]) > detection_min):
-                faces_positions.append((i*step/resize_factor**number_resize,j*step/(resize_factor**number_resize), number_resize))
+            score = is_face(image[i*step:i*step+width_image_network,j*step:j*step+heigh_image_network,:])
+            if(score > detection_min):
+                faces_positions.append((i*step/resize_factor**number_resize,j*step/(resize_factor**number_resize), number_resize, score))
 
     return faces_positions
 
@@ -48,7 +49,7 @@ while(image_copy.shape[0] >= 36 and image_copy.shape[1] >= 36):
 
 #we draw shapes where we detected faces
 
-for i,j,number_resize in faces_positions:
+for i,j,number_resize, score in faces_positions:
     resize_square_factor = 1/(resize_factor**number_resize)
 
     row_coordinates = np.array([i, i+width_image_network*resize_square_factor, \
@@ -66,9 +67,9 @@ skimage.io.imsave('/datas/output.jpg', np.squeeze(image, axis=(2,)))
 
 with open('./detection.txt', 'w') as detection:
     text_to_print = ''
-    for x,y,number_resize in faces_positions:
+    for x,y,number_resize, score in faces_positions:
         resize_square_factor = 1/(resize_factor**number_resize)
-        text_to_print += '{} {} {} {} \n'.format(x,y, width_image_network*resize_square_factor, heigh_image_network*resize_square_factor)
+        text_to_print += '{} {} {} {} {}\n'.format(x,y, width_image_network*resize_square_factor, heigh_image_network*resize_square_factor, score)
 
     detection.write(text_to_print)
 
