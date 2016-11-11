@@ -20,7 +20,6 @@ def is_face(image):
     #im = caffe.io.load_image(image_path, color=False)
     image_transformed = transformer.preprocess('data', image)
 
-    print(image_transformed)
     #we give it as the data to our CNN
     net.blobs['data'].data[...] = image_transformed
 

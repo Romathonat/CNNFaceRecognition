@@ -35,7 +35,7 @@ layer {
   bottom: "conv1"
   top: "pool1"
   pooling_param {
-    pool: AVE
+    pool: MAX
     kernel_size: 2
     stride: 2
   }
@@ -76,7 +76,7 @@ layer {
   bottom: "conv2"
   top: "pool2"
   pooling_param {
-    pool: AVE
+    pool: MAX
     kernel_size: 2
     stride: 2
   }

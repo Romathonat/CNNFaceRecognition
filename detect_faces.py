@@ -19,12 +19,6 @@ detection_min = 0.994
 
 image = caffe.io.load_image('/datas/merica.jpg', color=False)
 
-# #we normalize the picture
-# for i in range(len(image)):
-#     for j in range(len(image[i])):
-#         image[i][j] = image[i][j]/255
-
-
 def slide_window(image, number_resize):
     faces_positions = []
 
@@ -33,8 +27,6 @@ def slide_window(image, number_resize):
         for i in range((image.shape[0] - width_image_network) / step):
             if(is_face(image[i*step:i*step+width_image_network,j*step:j*step+heigh_image_network,:]) > detection_min):
                 faces_positions.append((i*step/resize_factor**number_resize,j*step/(resize_factor**number_resize), number_resize))
-
-
 
     return faces_positions
 
@@ -54,15 +46,15 @@ while(image_copy.shape[0] >= 36 and image_copy.shape[1] >= 36):
 
     count_resize += 1
 
-
-
 #we draw shapes where we detected faces
 
 for i,j,number_resize in faces_positions:
     resize_square_factor = 1/(resize_factor**number_resize)
 
-    row_coordinates = np.array([i, i+width_image_network*resize_square_factor, i+width_image_network*resize_square_factor, i])
-    col_coordinates = np.array([j, j, j+heigh_image_network*resize_square_factor, j+heigh_image_network*resize_square_factor])
+    row_coordinates = np.array([i, i+width_image_network*resize_square_factor, \
+        i+width_image_network*resize_square_factor, i])
+    col_coordinates = np.array([j, j, j+heigh_image_network*resize_square_factor,\
+        j+heigh_image_network*resize_square_factor])
 
 
     #we get the coordinates of the square, and we display a white square on the image
@@ -71,5 +63,13 @@ for i,j,number_resize in faces_positions:
 
 #we save the image, and delete the last dimension (W*H for images with no colors)
 skimage.io.imsave('/datas/output.jpg', np.squeeze(image, axis=(2,)))
+
+with open('./detection.txt', 'w') as detection:
+    text_to_print = ''
+    for x,y,number_resize in faces_positions:
+        resize_square_factor = 1/(resize_factor**number_resize)
+        text_to_print += '{} {} {} {} \n'.format(x,y, width_image_network*resize_square_factor, heigh_image_network*resize_square_factor)
+
+    detection.write(text_to_print)
 
 print faces_positions

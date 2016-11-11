@@ -61,7 +61,7 @@ layer {
   bottom: "conv1"
   top: "pool1"
   pooling_param {
-    pool: AVE
+    pool: MAX
     kernel_size: 2
     stride: 2
   }
@@ -102,7 +102,7 @@ layer {
   bottom: "conv2"
   top: "pool2"
   pooling_param {
-    pool: AVE
+    pool: MAX
     kernel_size: 2
     stride: 2
   }
@@ -165,9 +165,20 @@ layer {
 }
 
 layer {
-  name: "prob"
-  type: "Softmax"
+  name: "accuracy"
+  type: "Accuracy"
   bottom: "ip2"
-  top: "prob"
+  bottom: "label"
+  top: "accuracy"
+  include {
+    phase: TEST
+  }
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "ip2"
+  bottom: "label"
+  top: "loss"
 }
 
