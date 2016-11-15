@@ -2,7 +2,7 @@ import skimage.io
 import skimage.draw
 import skimage.transform
 import math
-import queue
+import Queue as queue
 
 class Point:
 
@@ -21,14 +21,11 @@ class Detection:
         self.score = new_score
         self.clustering_status = 0 # 0 : not visited yet, -1 : noize, else: cluster index
 
-def load_detections():
-
+def load_detections(cnn_detections):
     detections = []
-    f = open('detections_for_clustering_test.txt', 'r')
-    for line in f:
-        if line.strip():
-            words = line.split(' ')
-            detections.append(Detection(Point(int(float(words[0])), int(float(words[1]))), int(float(words[2])), int(float(words[3])), int(float(words[4]))))
+    for line in cnn_detections:
+        words = line.split(' ')
+        detections.append(Detection(Point(int(float(words[0])), int(float(words[1]))), int(float(words[2])), int(float(words[3])), int(float(words[4]))))
     return detections
 
 def draw_detections(detections, infilename, outfilename):
@@ -45,7 +42,7 @@ def draw_detections(detections, infilename, outfilename):
         image[rr,cc] = 1
         rr, cc = skimage.draw.line(detection.top_left_corner.x, detection.top_left_corner.y, detection.top_left_corner.x, detection.top_left_corner.y+detection.height)
         image[rr,cc] = 1
-    
+
     skimage.io.imsave(outfilename, image)
 
 def draw_grouped_detections(clusters, in_source_filename, in_detections_filename, out_clusters_on_source_filename, out_clusters_on_detections_filname):
@@ -77,8 +74,8 @@ def group_detections(detections, min_score):
             clusters[detection.clustering_status] = []
             clusters[detection.clustering_status].append(detection)
 
-    # for each cluster, group detections into an average    
-    grouped_detections = {} 
+    # for each cluster, group detections into an average
+    grouped_detections = {}
     for i in range(0, nb_clusters):
         detections = clusters[i+1]
         avg_x = 0
@@ -164,7 +161,7 @@ def distance(detection1, detection2):
 
     if(max_left < min_right and max_top < min_bottom):
         #overlapping
-        
+
         #calculate overalapping ratio
         overlap_area = (min_bottom-max_top)*(min_right-max_left)
         d1_area = detection1.width*detection1.height
@@ -178,10 +175,17 @@ def distance(detection1, detection2):
     '''
     return distance
 
+def clustering_image(cnn_detections, image_path):
+    detections = load_detections(cnn_detections)
+    DBSCAN(detections, 36, 2)
+    grouped_detections = group_detections(detections, 0.99)
+    draw_detections(detections, image_path, image_path+'_detections.jpg')
+    draw_grouped_detections(grouped_detections, image_path, image_path+'_detections.jpg', image_path+'_with_clusters_on_source.jpg', image_path+'_with_clusters_on_detections.jpg')
+
 ##################################### Tests
 
-detections = load_detections()
-DBSCAN(detections, 36, 2)
-grouped_detections = group_detections(detections, 0.99)
-draw_detections(detections, 'merica.jpg', 'merica_with_detections.jpg')
-draw_grouped_detections(grouped_detections, 'merica.jpg', 'merica_with_detections.jpg', 'merica_with_clusters_on_source.jpg', 'merica_with_clusters_on_detections.jpg')
+# detections = load_detections()
+# DBSCAN(detections, 36, 2)
+# grouped_detections = group_detections(detections, 0.99)
+# draw_detections(detections, 'merica.jpg', 'merica_with_detections.jpg')
+# draw_grouped_detections(grouped_detections, 'merica.jpg', 'merica_with_detections.jpg', 'merica_with_clusters_on_source.jpg', 'merica_with_clusters_on_detections.jpg')

@@ -6,6 +6,8 @@ import skimage.draw
 import skimage.transform
 import timeit
 
+from DBSCAN.draft_dbscan import clustering_image
+
 #TODO: command-line interface
 #TODO: resize too big picture at the begining (too long for high quality)
 
@@ -16,8 +18,9 @@ width_image_network = 36
 heigh_image_network = 36
 resize_factor = 0.85
 detection_min = 0.994
+image_path = '/datas/merica.jpg'
 
-image = caffe.io.load_image('/datas/merica.jpg', color=False)
+image = caffe.io.load_image(image_path, color=False)
 
 def slide_window(image, number_resize):
     faces_positions = []
@@ -65,12 +68,11 @@ for i,j,number_resize, score in faces_positions:
 #we save the image, and delete the last dimension (W*H for images with no colors)
 skimage.io.imsave('/datas/output.jpg', np.squeeze(image, axis=(2,)))
 
-with open('./detection.txt', 'w') as detection:
-    text_to_print = ''
-    for x,y,number_resize, score in faces_positions:
-        resize_square_factor = 1/(resize_factor**number_resize)
-        text_to_print += '{} {} {} {} {}\n'.format(x,y, width_image_network*resize_square_factor, heigh_image_network*resize_square_factor, score)
+#we use dbscan to get faces
+cnn_detections = []
+for x,y,number_resize, score in faces_positions:
+    resize_square_factor = 1/(resize_factor**number_resize)
+    cnn_detections.append('{} {} {} {} {}'.format(x,y, width_image_network*\
+        resize_square_factor, heigh_image_network*resize_square_factor, score))
 
-    detection.write(text_to_print)
-
-print faces_positions
+clustering_image(cnn_detections, image_path)
