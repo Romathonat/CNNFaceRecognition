@@ -17,8 +17,8 @@ step = 5
 width_image_network = 36
 heigh_image_network = 36
 resize_factor = 0.85
-detection_min = 0.994
-image_path = '/datas/merica.jpg'
+detection_min = 0.999
+image_path = '/datas/mr_robot.jpg'
 
 image = caffe.io.load_image(image_path, color=False)
 

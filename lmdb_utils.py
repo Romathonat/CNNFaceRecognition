@@ -25,11 +25,19 @@ def clean_folder():
     except:
         pass
     try:
+        shutil.rmtree('./train_lmdb_iterations/non_faces2')
+    except:
+        pass
+    try:
         shutil.rmtree('./textures_lmdb')
     except:
         pass
-    os.remove('train_lmdb_iterations/lock.mdb')
-    os.remove('train_lmdb_iterations/data.mdb')
+
+    try:
+        os.remove('train_lmdb_iterations/lock.mdb')
+        os.remove('train_lmdb_iterations/data.mdb')
+    except:
+        pass
 
 def merge_lmdb(path_lmdb1, path_lmdb2, out_path):
     txn1 = lmdb.open(path_lmdb1).begin(write=True)
@@ -84,10 +92,8 @@ def generate_lmdb_from_images(path_images):
             if image.endswith(".pgm"):
                 f.write('{} 0\n'.format(image))
 
-    print('convert_imageset --shuffle --gray {}/ {} {}'.format(path_images, local_posneg, output))
     call('convert_imageset --shuffle --gray {}/ {} {}'.format(path_images, local_posneg, output), shell=True)
 
-    print('convet done')
     #we can delete this file now
     os.remove(local_posneg)
 
@@ -101,31 +107,54 @@ def generate_train_lmdb(number_faces, path_lmdb_new_non_faces, count_mistakes = 
     path_lmdb_non_faces = generate_lmdb_from_random_pics(number_faces-count_mistakes, \
         './train_images', './train_lmdb_iterations/non_faces' , False)
 
-    merge_lmdb(path_lmdb_non_faces, path_lmdb_new_non_faces, './train_lmdb_iterations')
-    merge_lmdb('./train_lmdb_iterations', path_lmdb_faces, './train_lmdb_iterations')
+
+    merge_lmdb(path_lmdb_non_faces, path_lmdb_new_non_faces, './train_lmdb_iterations/non_faces2')
+    merge_lmdb('./train_lmdb_iterations/non_faces2', path_lmdb_faces, './train_lmdb_iterations')
+    #error here
 
 def generate_train_lmdb_without_new_non_faces(number_faces):
-    #we remove those folder if they are present because of convert imageset
     path_lmdb_faces = generate_lmdb_from_random_pics(number_faces, \
         './train_images', './train_lmdb_iterations/faces' ,True)
     path_lmdb_non_faces = generate_lmdb_from_random_pics(number_faces, \
         './train_images', './train_lmdb_iterations/non_faces', False)
 
+    print('ready to merge')
     merge_lmdb(path_lmdb_non_faces, path_lmdb_faces, './train_lmdb_iterations')
 
+def change_number_iterations_training(number_iterations):
+    '''Change the number of iterations in facenet_solver.prototxt'''
+    with open('./facenet_solver.prototxt', 'r+w') as f:
+        memory_file = f.readlines()
+        text_to_write = []
+        for i,line in enumerate(memory_file):
+            text_to_write.append(re.sub('max_iter: [0-9]+', 'max_iter: {}'.format(number_iterations), line))
+        f.seek(0)
+        f.write(''.join(text_to_write))
+        f.truncate()
 
 number_faces = 20000
 THR = 0.9
+number_iterations = 200000
 clean_folder()
 generate_train_lmdb_without_new_non_faces(number_faces)
+
+#to be sure to be in the first state
+change_number_iterations_training(number_iterations)
+
+caffe.set_mode_cpu()
+solver = caffe.get_solver('/datas/facenet_solver.prototxt')
+solver.solve()
+
+change_number_iterations_training(number_iterations+200000)
 
 for count_iteration in range(6):
     print('Iteration number :{}'.format(count_iteration))
 
-    #1 we train the network with 20000 Faces
-    caffe.set_mode_cpu()
-    solver = caffe.get_solver('/datas/facenet_solver.prototxt')
-    solver.solve()
+    #1 we train the network with number_faces faces
+    call('caffe train -solver facenet_solver.prototxt -snapshot facenet_iter_{}.solverstate'.format(number_iterations), shell=True)
+    #we rename it correctly (so that is_face select the right file)
+    os.rename('facenet_iter_{}.caffemodel'.format(number_iterations),'facenet_final.caffemodel')
+
 
     #2 we make it work on textures images (so non-faces), and we isolate the ones that are > THR (detected as faces)
     #os.chdir("./")
@@ -148,14 +177,14 @@ for count_iteration in range(6):
     #those are textures
     path_lmdb_new_non_faces = generate_lmdb_from_images('/datas/train_lmdb_iterations_images')
 
-    print("step 4")
-
     #4 we generate new F and NF for next iterations: merge NF and generate_lmdb_faces for faces
     clean_folder()
     generate_train_lmdb(number_faces, path_lmdb_new_non_faces, count_mistakes)
 
-    print("iteration finished")
 
+    #we prepare next iteration
     THR -= 2
     number_faces += count_mistakes
     clean_folder()
+    number_iterations += 200000
+    change_number_iterations_training(number_iterations+200000)

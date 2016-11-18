@@ -20,9 +20,9 @@ lr_policy: "fixed"
 # Display every 100 iterations
 display: 100
 # The maximum number of iterations
-max_iter: 200000
+max_iter: 1600000
 # snapshot intermediate results
-snapshot: 5000
+snapshot: 100000
 snapshot_prefix: "facenet"
 # solver mode: CPU or GPU
 solver_mode: CPU
