@@ -11,11 +11,8 @@ import re
 import fileinput
 import shutil
 
-import pdb
-
-from is_face import is_face
-
 def clean_folder():
+    '''Clean for convert_imageset'''
     try:
         shutil.rmtree('./train_lmdb_iterations/faces')
     except:
@@ -40,6 +37,7 @@ def clean_folder():
         pass
 
 def merge_lmdb(path_lmdb1, path_lmdb2, out_path):
+    '''Merge two lmdb in out_path'''
     txn1 = lmdb.open(path_lmdb1).begin(write=True)
     txn2 = lmdb.open(path_lmdb2).begin(write=True)
 
@@ -54,7 +52,8 @@ def merge_lmdb(path_lmdb1, path_lmdb2, out_path):
             txn3.put(key, value)
 
 def generate_lmdb_from_random_pics(number_to_generate, path_images, output, among_faces):
-    '''we read from posneg.txt, then we randomly select among the faces'''
+    '''Select number_to_generate faces or non_faces, depending on among_faces, and \
+    convert it to lmdb in output'''
     local_posneg = './posneg_iteration.txt'
 
     #64770: number of positive images
@@ -75,7 +74,8 @@ def generate_lmdb_from_random_pics(number_to_generate, path_images, output, amon
     with open(local_posneg, 'w+') as f:
         f.write(''.join(extracted_lines))
 
-    call('convert_imageset --shuffle --gray {}/ {} {}'.format(path_images, local_posneg, output), shell=True)
+    call('convert_imageset --shuffle --gray {}/ {} {}'.format(path_images, \
+        local_posneg, output), shell=True)
 
     os.remove(local_posneg)
 
@@ -92,19 +92,21 @@ def generate_lmdb_from_images(path_images):
             if image.endswith(".pgm"):
                 f.write('{} 0\n'.format(image))
 
-    call('convert_imageset --shuffle --gray {}/ {} {}'.format(path_images, local_posneg, output), shell=True)
+    call('convert_imageset --shuffle --gray {}/ {} {}'.format(path_images, \
+        local_posneg, output), shell=True)
 
     #we can delete this file now
     os.remove(local_posneg)
 
     return output
 
-def generate_train_lmdb(number_faces, path_lmdb_new_non_faces, count_mistakes = 0):
-    #we remove those folder if they are present because of convert imageset
+def generate_train_lmdb(number, path_lmdb_new_non_faces, count_mistakes = 0):
+    '''Generate a lmdb of faces and non-faces, and merge it with the lmdb\
+    from path_lmdb_new_non_faces'''
 
-    path_lmdb_faces = generate_lmdb_from_random_pics(number_faces, \
+    path_lmdb_faces = generate_lmdb_from_random_pics(number, \
         './train_images', './train_lmdb_iterations/faces' , True)
-    path_lmdb_non_faces = generate_lmdb_from_random_pics(number_faces-count_mistakes, \
+    path_lmdb_non_faces = generate_lmdb_from_random_pics(number-count_mistakes, \
         './train_images', './train_lmdb_iterations/non_faces' , False)
 
 
@@ -113,12 +115,12 @@ def generate_train_lmdb(number_faces, path_lmdb_new_non_faces, count_mistakes = 
     #error here
 
 def generate_train_lmdb_without_new_non_faces(number_faces):
+    '''Generate a lmdb of faces and non-faces'''
     path_lmdb_faces = generate_lmdb_from_random_pics(number_faces, \
         './train_images', './train_lmdb_iterations/faces' ,True)
     path_lmdb_non_faces = generate_lmdb_from_random_pics(number_faces, \
         './train_images', './train_lmdb_iterations/non_faces', False)
 
-    print('ready to merge')
     merge_lmdb(path_lmdb_non_faces, path_lmdb_faces, './train_lmdb_iterations')
 
 def change_number_iterations_training(number_iterations):
@@ -127,64 +129,9 @@ def change_number_iterations_training(number_iterations):
         memory_file = f.readlines()
         text_to_write = []
         for i,line in enumerate(memory_file):
-            text_to_write.append(re.sub('max_iter: [0-9]+', 'max_iter: {}'.format(number_iterations), line))
+            text_to_write.append(re.sub('max_iter: [0-9]+', 'max_iter: {}'\
+            .format(number_iterations), line))
+
         f.seek(0)
         f.write(''.join(text_to_write))
         f.truncate()
-
-number_faces = 20000
-THR = 0.9
-number_iterations = 200000
-clean_folder()
-generate_train_lmdb_without_new_non_faces(number_faces)
-
-#to be sure to be in the first state
-change_number_iterations_training(number_iterations)
-
-caffe.set_mode_cpu()
-solver = caffe.get_solver('/datas/facenet_solver.prototxt')
-solver.solve()
-
-change_number_iterations_training(number_iterations+200000)
-
-for count_iteration in range(6):
-    print('Iteration number :{}'.format(count_iteration))
-
-    #1 we train the network with number_faces faces
-    call('caffe train -solver facenet_solver.prototxt -snapshot facenet_iter_{}.solverstate'.format(number_iterations), shell=True)
-    #we rename it correctly (so that is_face select the right file)
-    os.rename('facenet_iter_{}.caffemodel'.format(number_iterations),'facenet_final.caffemodel')
-
-
-    #2 we make it work on textures images (so non-faces), and we isolate the ones that are > THR (detected as faces)
-    #os.chdir("./")
-
-    #we remove files in the folder containing images for the next lmdb generation
-    files = glob.glob('/datas/train_lmdb_iterations_images/*')
-    for f in files:
-        os.remove(f)
-
-    #we add images
-    count_mistakes = 0
-    for f in os.listdir('./textures'):
-        if f.endswith(".pgm"):
-            image = caffe.io.load_image('./textures/{}'.format(f), color=False)
-            if is_face(image) > THR:
-                shutil.copy('./textures/{}'.format(f), '/datas/train_lmdb_iterations_images')
-                count_mistakes += 1
-
-    #3 we generate lmdb file from those isolated images
-    #those are textures
-    path_lmdb_new_non_faces = generate_lmdb_from_images('/datas/train_lmdb_iterations_images')
-
-    #4 we generate new F and NF for next iterations: merge NF and generate_lmdb_faces for faces
-    clean_folder()
-    generate_train_lmdb(number_faces, path_lmdb_new_non_faces, count_mistakes)
-
-
-    #we prepare next iteration
-    THR -= 2
-    number_faces += count_mistakes
-    clean_folder()
-    number_iterations += 200000
-    change_number_iterations_training(number_iterations+200000)

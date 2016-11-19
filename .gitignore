@@ -3,4 +3,4 @@ test_lmdb/
 train_lmdb/
 test_images/
 train_images/
-
+textures/

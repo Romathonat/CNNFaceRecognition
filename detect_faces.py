@@ -17,9 +17,10 @@ step = 5
 width_image_network = 36
 heigh_image_network = 36
 resize_factor = 0.85
-detection_min = 0.999
-image_path = '/datas/mr_robot.jpg'
-
+detection_min = 0.997
+image_path = '/datas/output_generated/merica.jpg'
+output_path = '/datas/output_generated'
+caffemodel = 'facenet_iter_1400000.caffemodel'
 image = caffe.io.load_image(image_path, color=False)
 
 def slide_window(image, number_resize):
@@ -28,7 +29,8 @@ def slide_window(image, number_resize):
     #take care if the image is smaller than 36*36
     for j in range((image.shape[1] - heigh_image_network) / step):
         for i in range((image.shape[0] - width_image_network) / step):
-            score = is_face(image[i*step:i*step+width_image_network,j*step:j*step+heigh_image_network,:])
+            score = is_face(image[i*step:i*step+width_image_network,\
+                j*step:j*step+heigh_image_network,:], caffemodel)
             if(score > detection_min):
                 faces_positions.append((i*step/resize_factor**number_resize,j*step/(resize_factor**number_resize), number_resize, score))
 
@@ -66,7 +68,7 @@ for i,j,number_resize, score in faces_positions:
     image[rr,cc,:] = 1
 
 #we save the image, and delete the last dimension (W*H for images with no colors)
-skimage.io.imsave('/datas/output.jpg', np.squeeze(image, axis=(2,)))
+skimage.io.imsave('/datas/output_generated/output.jpg', np.squeeze(image, axis=(2,)))
 
 #we use dbscan to get faces
 cnn_detections = []
