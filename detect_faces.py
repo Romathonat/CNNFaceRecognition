@@ -16,9 +16,9 @@ from DBSCAN.draft_dbscan import clustering_image
 step = 5
 width_image_network = 36
 heigh_image_network = 36
-resize_factor = 0.85
-detection_min = 0.997
-image_path = '/datas/output_generated/merica.jpg'
+resize_factor = 0.80
+detection_min = 0.9999
+image_path = '/datas/output_generated/congo.jpg'
 output_path = '/datas/output_generated'
 caffemodel = 'facenet_iter_1400000.caffemodel'
 image = caffe.io.load_image(image_path, color=False)
