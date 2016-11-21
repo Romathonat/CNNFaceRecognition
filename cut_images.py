@@ -94,4 +94,4 @@ def pyramidal_slice_folder(outdir, slice_size, slice_count_limit):
             sliced_files_count += pyramidal_slice(file, file, directory, slice_size)
             print(file + " got sliced!")
 
-pyramidal_slice_folder(".", 32, 100000)
+pyramidal_slice_folder(".", 36, 100000)

@@ -3,4 +3,10 @@ test_lmdb/
 train_lmdb/
 test_images/
 train_images/
+textures/
+*.jpg
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class

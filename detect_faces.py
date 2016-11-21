@@ -6,7 +6,7 @@ import skimage.draw
 import skimage.transform
 import timeit
 
-from DBSCAN.draft_dbscan import clustering_image
+from DBSCAN.dbscan import clustering_image
 
 #TODO: command-line interface
 #TODO: resize too big picture at the begining (too long for high quality)
@@ -18,7 +18,7 @@ width_image_network = 36
 heigh_image_network = 36
 resize_factor = 0.85
 detection_min = 0.994
-image_path = '/datas/merica.jpg'
+image_path = '/datas/malou.jpg'
 
 image = caffe.io.load_image(image_path, color=False)
 
