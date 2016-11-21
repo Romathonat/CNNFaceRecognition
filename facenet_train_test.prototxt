@@ -10,7 +10,7 @@ layer {
     scale: 0.00390625
   }
   data_param {
-    source: "train_lmdb"
+    source: "train_lmdb_iterations"
     batch_size: 1
     backend: LMDB
   }
@@ -181,4 +181,3 @@ layer {
   bottom: "label"
   top: "loss"
 }
-
